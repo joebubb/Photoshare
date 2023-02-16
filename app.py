@@ -17,7 +17,7 @@ import flask_login
 #for image uploading
 import os, base64
 
-# to hide passwords 
+# to hide passwords (added, not there by default. security may not be necessary)
 import hashlib
 
 mysql = MySQL()
