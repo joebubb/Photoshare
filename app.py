@@ -23,10 +23,11 @@ import hashlib
 mysql = MySQL()
 app = Flask(__name__)
 app.secret_key = 'super secret string'  # Change this!
-
+with open('dbpassword.txt') as f: 
+	p = f.read()
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'your_db_pwd_here'
+app.config['MYSQL_DATABASE_PASSWORD'] = p
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
