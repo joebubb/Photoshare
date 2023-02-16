@@ -26,7 +26,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'November_2001'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'your_db_pwd_here'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
