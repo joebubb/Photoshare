@@ -136,7 +136,7 @@ def register_user():
 		first_name = request.form.get('first_name').strip()
 		last_name = request.form.get('last_name').strip()
 		email=request.form.get('email').strip()
-		password=request.form.get('password').strip()
+		password=request.form.get('password')
 		hashed_pwd = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 		dob = request.form.get('date_of_birth')
 		date_obj = datetime.strptime(dob, '%Y-%m-%d').date()
