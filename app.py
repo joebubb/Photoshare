@@ -221,17 +221,50 @@ def hello():
 	return render_template('hello.html', message='Welecome to Photoshare')
 
 
+@app.route("/friends", methods=["GET"])
+@flask_login.login_required
+def show_friends(): 
+	with conn.cursor() as cursor: 
+		# get the current user's id 
+		query = "SELECT user_id FROM Users WHERE email=%s"
+		values = (flask_login.current_user.id)
+		cursor.execute(query, values)
+		user_id = cursor.fetchone()[0]
+		
+		# get the friend_ids 
+		query = "SELECT friend_id FROM Friends WHERE user_id=%s"
+		values = (user_id)
+		cursor.execute(query, values)
+		friend_ids = cursor.fetchall()
+
+		# get a list of all friends 
+		friends = []
+		for id in friend_ids: 
+			query = "SELECT first_name, last_name, email FROM Users WHERE user_id=%s"
+			values = (id)
+			cursor.execute(query, values)
+			u = cursor.fetchone()
+			if u: 
+				friends.append(u)
+
+		# render template with friends list 
+		return render_template('friends.html', friends=friends)
+
+
 @app.route("/find-friends", methods=["GET", "POST"])
 @flask_login.login_required
 def find_friend(): 
 	if request.method == "GET": 
 		return render_template("find-friends.html")
 	else: 
+		# get the search info 
 		fname = request.form.get('first_name').strip()
 		lname = request.form.get('last_name').strip()
+
+		# see if people with that name exist 
 		with conn.cursor() as cursor: 
-			query = f'SELECT first_name, last_name, email FROM Users WHERE \
-		first_name=%s AND last_name=%s'
+			query = f"SELECT first_name, last_name, email FROM Users WHERE \
+		first_name=%s AND last_name=%s"
 			values = (fname, lname)
 			cursor.execute(query, values)
 			conn.commit()

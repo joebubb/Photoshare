@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Friends</title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <a href="/find-friends">Find Friends</a>
+        <h2>Friends</h2>
+        <ul>
+            {% for friend in friends %}
+                <li>
+                    <p>{{ friend[0]+' '+friend[1]+': '+friend[2] }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </body>
+</html>
