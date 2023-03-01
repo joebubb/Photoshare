@@ -96,14 +96,12 @@ def login():
 		   <a href='/'>Home</a>
 			   '''
 	#The request method is POST (page is recieving data)
-	email = flask.request.form['email']
+	email = flask.request.form['email'].strip()
 	cursor = conn.cursor()
 	#check if email is registered
 	if cursor.execute("SELECT password FROM Users WHERE email = '{0}'".format(email)):
 		data = cursor.fetchall()
 		pwd = str(data[0][0] )
-		print(pwd)
-		print(flask.request.form['password'])
 		if bcrypt.checkpw(flask.request.form['password'].encode(), pwd.encode()):
 			user = User()
 			user.id = email
@@ -135,10 +133,10 @@ def register():
 @app.route("/register", methods=['POST'])
 def register_user():
 	try:
-		first_name = request.form.get('first_name')
-		last_name = request.form.get('last_name')
-		email=request.form.get('email')
-		password=request.form.get('password')
+		first_name = request.form.get('first_name').strip()
+		last_name = request.form.get('last_name').strip()
+		email=request.form.get('email').strip()
+		password=request.form.get('password').strip()
 		hashed_pwd = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 		dob = request.form.get('date_of_birth')
 		date_obj = datetime.strptime(dob, '%Y-%m-%d').date()
@@ -225,16 +223,56 @@ def hello():
 
 @app.route("/find-friends", methods=["GET", "POST"])
 @flask_login.login_required
-def add_friend(): 
+def find_friend(): 
 	if request.method == "GET": 
 		return render_template("find-friends.html")
 	else: 
-		friend_email = request.form.get('email')
+		fname = request.form.get('first_name').strip()
+		lname = request.form.get('last_name').strip()
 		with conn.cursor() as cursor: 
-			cursor.execute(f'SELECT user_id FROM Users WHERE email={friend_email}')
+			query = f'SELECT first_name, last_name, email FROM Users WHERE \
+		first_name=%s AND last_name=%s'
+			values = (fname, lname)
+			cursor.execute(query, values)
 			conn.commit()
 			users = cursor.fetchall()
+			print(users)
 			return render_template('find-friends.html', users=users)
+		
+
+@app.route("/add-friend", methods=["POST"])
+@flask_login.login_required
+def add_friend(): 
+	with conn.cursor() as cursor: 
+		# get friend_id
+		query = "SELECT user_id FROM Users WHERE email=%s"
+		values = (request.form['friend_email']) 
+		cursor.execute(query, values)
+		friend_id = cursor.fetchall()[0][0]
+
+		# get user_id 
+		user_email = flask_login.current_user.id 
+		query = "SELECT user_id FROM Users WHERE email=%s"
+		values = (user_email) 
+		cursor.execute(query, values)
+		user_id = cursor.fetchall()[0][0]
+
+		values = (user_id, friend_id) # the values we will use from now on 
+
+		# check if they are friends already 
+		query = "SELECT * FROM Friends WHERE user_id = %s AND friend_id = %s"
+		cursor.execute(query, values)
+		already_friends = cursor.fetchone()
+		if already_friends: 
+			return render_template("hello.html", \
+			  message="You are already friends with that person!")
+
+		# insert into Friends table 
+		query = "INSERT INTO Friends (user_id,friend_id) VALUES (%s,%s)"
+		cursor.execute(query, values)
+		conn.commit()
+
+	return render_template('hello.html', message='Friend added!')
 
 
 if __name__ == "__main__":
