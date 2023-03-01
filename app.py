@@ -102,7 +102,9 @@ def login():
 	if cursor.execute("SELECT password FROM Users WHERE email = '{0}'".format(email)):
 		data = cursor.fetchall()
 		pwd = str(data[0][0] )
-		if flask.request.form['password'] == pwd:
+		print(pwd)
+		print(flask.request.form['password'])
+		if bcrypt.checkpw(flask.request.form['password'].encode(), pwd.encode()):
 			user = User()
 			user.id = email
 			flask_login.login_user(user) #okay login in user
@@ -232,7 +234,7 @@ def add_friend():
 			cursor.execute(f'SELECT user_id FROM Users WHERE email={friend_email}')
 			conn.commit()
 			users = cursor.fetchall()
-			return render_template('find-friends.html')
+			return render_template('find-friends.html', users=users)
 
 
 if __name__ == "__main__":
