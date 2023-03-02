@@ -1,0 +1,29 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Albums</title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <a href="/new-album">Create Album</a>
+        <h2>Your Albums</h2>
+        {% if has_albums %}
+        <ul>
+            {% for album in albums %}
+
+                <form action="{{ url_for('get_album') }}" method="get">
+                    <p>{{ album['name'] }}</p><br/>
+                    <p>{{ album['date'] }}</p><br/>
+                    <input type="hidden" value="{{ album['id'] }}">
+                    <button type="submit">Show Album</button>
+                </form>
+
+            {% endfor %}
+        </ul>   
+        {% endif %}
+
+        {% if no_albums %}
+            <p>You have no albums yet</p>
+        {% endif %}
+    </body>
+</html>

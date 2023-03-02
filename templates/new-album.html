@@ -1,0 +1,15 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Album</title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <h2>Create an Album</h2>
+        <form action="{{ url_for('new_album') }}" method="post">
+            <label for="name">Album Name:</label>
+            <input type="text" name="name">
+            <input type="submit" value="Create Album">
+        </form>
+    </body>
+</html>

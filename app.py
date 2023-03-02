@@ -214,6 +214,13 @@ def upload_file():
 		return render_template('upload.html')
 #end photo uploading code
 
+def get_user_id(): 
+	with conn.cursor() as cursor: 
+		query = "SELECT user_id FROM Users WHERE email=%s"
+		values = (flask_login.current_user.id)
+		cursor.execute(query, values)
+		return cursor.fetchone()[0]
+
 
 #default page
 @app.route("/", methods=['GET'])
@@ -226,10 +233,7 @@ def hello():
 def show_friends(): 
 	with conn.cursor() as cursor: 
 		# get the current user's id 
-		query = "SELECT user_id FROM Users WHERE email=%s"
-		values = (flask_login.current_user.id)
-		cursor.execute(query, values)
-		user_id = cursor.fetchone()[0]
+		user_id = get_user_id()
 		
 		# get the friend_ids 
 		query = "SELECT friend_id FROM Friends WHERE user_id=%s"
@@ -284,11 +288,7 @@ def add_friend():
 		friend_id = cursor.fetchall()[0][0]
 
 		# get user_id 
-		user_email = flask_login.current_user.id 
-		query = "SELECT user_id FROM Users WHERE email=%s"
-		values = (user_email) 
-		cursor.execute(query, values)
-		user_id = cursor.fetchall()[0][0]
+		user_id = get_user_id()
 
 		values = (user_id, friend_id) # the values we will use from now on 
 
@@ -306,6 +306,46 @@ def add_friend():
 		conn.commit()
 
 	return render_template('hello.html', message='Friend added!')
+
+
+@app.route("/list-albums", methods=["GET"])
+@flask_login.login_required
+def list_albums(): 
+	with conn.cursor() as cursor: 
+		# get the user_id
+		user_id = get_user_id()
+
+		# fetch all albums belonging to that user 
+		query = "SELECT albumID, name, dateCreated FROM Albums WHERE userID=%s"
+		values = (user_id)
+		cursor.execute(query, values)
+		all_album_tups = cursor.fetchall() 
+
+		# tell the user if there are no albums
+		if not all_album_tups: 
+			return render_template("list-albums.html", no_albums=True)
+		
+		# else convert the tuples to dictionaries 
+		all_albums =[{'name': tup[1], 'id': tup[0], 'date': tup[2] } \
+	       for tup in all_album_tups]
+
+		return render_template('list-albums.html', has_albums=True, albums=all_albums)
+
+
+@app.route("/new-album", methods=["GET", "POST"])
+@flask_login.login_required
+def new_album(): 
+	if request.method == "GET": 
+		return render_template("new-album.html")
+	else: 
+		# figure out the date 
+		current_date = f"{datetime.year}-{datetime.month}-{datetime.day}"
+
+		# get the album name 
+		name = request.form["name"]
+
+		# check if an album exists with the same name already 
+		user_id = get_user_id()
 
 
 if __name__ == "__main__":
