@@ -91,7 +91,7 @@ def login():
 			   <form action='login' method='POST'>
 				<input type='text' name='email' id='email' placeholder='email'></input>
 				<input type='password' name='password' id='password' placeholder='password'></input>
-				<input type='submit' name='submit'></input>
+				<input type='submit' name='submit' value='Login'></input>
 			   </form></br>
 		   <a href='/'>Home</a>
 			   '''
@@ -208,15 +208,31 @@ def upload_file():
 		imgfile = request.files['photo']
 		caption = request.form.get('caption')
 		album_name = request.form.get('album')
+		# split the tags up 
+		tags = request.form.get('tags').strip().split()
 		with conn.cursor() as cursor: 
+			# get the next picture_id for Tags insertion 
+			query = "SELECT MAX(picture_id) + 1 FROM Pictures"
+			cursor.execute(query)
+			next_picture_id = cursor.fetchone()[0]
+
+			# get album
 			query = "SELECT albumID FROM Albums WHERE name=%s AND userID=%s"
 			values = (album_name, uid)
 			cursor.execute(query, values)
 			album_id = cursor.fetchone()[0]
-		photo_data =imgfile.read()
-		cursor = conn.cursor()
-		cursor.execute("INSERT INTO Pictures (imgdata, user_id, caption, album)\
+
+			photo_data =imgfile.read()
+
+			cursor.execute("INSERT INTO Pictures (imgdata, user_id, caption, album)\
 			  VALUES (%s, %s, %s, %s )", (photo_data, uid, caption, album_id))
+
+			for tag in tags: 
+				query = "INSERT INTO Tags (tagname, photo) VALUES (%s,%s)"
+				values = (tag, next_picture_id)
+				cursor.execute(query, values)
+
+		
 		conn.commit()
 		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
@@ -391,7 +407,7 @@ def show_album():
 	pairs = zip(pictures, captions)
 
 	# if there are no photos, the template should be rendered different 
-	if pairs: 
+	if not pairs: 
 		return render_template(
 			'albums/show-album.html', 
 			no_photos=True,
