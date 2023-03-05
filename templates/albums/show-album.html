@@ -1,0 +1,25 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title> {{ album_name }} </title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <a href="/list-albums">Back</a>
+        <h2> {{ album_name }}</h2>
+        {% if has_photos %}
+            {% for pair in pairs %}
+                <li>
+                    <div>
+                        <img src='data:image/jpg;base64, {{ base64.b64encode(pair[0]).decode("ascii") }}'/>
+                        <p>{{ pair[1] }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        {% endif %}
+
+        {% if no_photos %}
+            <p>This album has no photos yet.</p>
+        {% endif %}
+    </body>
+</html>

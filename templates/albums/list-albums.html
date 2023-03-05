@@ -7,17 +7,22 @@
         <a href="/">Home</a>
         <a href="/new-album">Create Album</a>
         <h2>Your Albums</h2>
+        {% if message %}
+            <h3>{{ message }}</h3>
+        {% endif %}
+
         {% if has_albums %}
         <ul>
             {% for album in albums %}
-
-                <form action="{{ url_for('get_album') }}" method="get">
+            <li>
+                <form action="{{ url_for('show_album') }}" method="get">
                     <p>{{ album['name'] }}</p><br/>
                     <p>{{ album['date'] }}</p><br/>
-                    <input type="hidden" value="{{ album['id'] }}">
+                    <input type="hidden" name="id" value="{{ album['id'] }}">
+                    <input type="hidden" name="name" value="{{ album['name'] }}">
                     <button type="submit">Show Album</button>
                 </form>
-
+            </li>  
             {% endfor %}
         </ul>   
         {% endif %}

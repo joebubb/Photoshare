@@ -18,7 +18,7 @@ import flask_login
 #for image uploading
 import os, base64
 
-# to hide passwords (added, not there by default. security may not be necessary)
+# to hide passwords 
 import bcrypt
 
 mysql = MySQL()
@@ -137,6 +137,8 @@ def register_user():
 		last_name = request.form.get('last_name').strip()
 		email=request.form.get('email').strip()
 		password=request.form.get('password')
+		# hash with bcrypt before insertion so that users cannot use 
+		# a SQL injection attack to read passwords 
 		hashed_pwd = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 		dob = request.form.get('date_of_birth')
 		date_obj = datetime.strptime(dob, '%Y-%m-%d').date()
@@ -147,6 +149,7 @@ def register_user():
 	with conn.cursor() as cursor: 
 		test =  isEmailUnique(email)
 		if test:
+			# insert the user into the Users Table
 			query = "INSERT INTO Users (first_name, last_name, email, password, date_of_birth) VALUES (%s, %s, %s, %s, %s)"
 			values = (first_name, last_name, email, hashed_pwd, date_obj)
 			print(cursor.execute(query, values))
@@ -204,22 +207,36 @@ def upload_file():
 		uid = getUserIdFromEmail(flask_login.current_user.id)
 		imgfile = request.files['photo']
 		caption = request.form.get('caption')
+		album_name = request.form.get('album')
+		with conn.cursor() as cursor: 
+			query = "SELECT albumID FROM Albums WHERE name=%s AND userID=%s"
+			values = (album_name, uid)
+			cursor.execute(query, values)
+			album_id = cursor.fetchone()[0]
 		photo_data =imgfile.read()
 		cursor = conn.cursor()
-		cursor.execute('''INSERT INTO Pictures (imgdata, user_id, caption) VALUES (%s, %s, %s )''', (photo_data, uid, caption))
+		cursor.execute("INSERT INTO Pictures (imgdata, user_id, caption, album)\
+			  VALUES (%s, %s, %s, %s )", (photo_data, uid, caption, album_id))
 		conn.commit()
 		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
-		return render_template('upload.html')
+		# get the albums 
+		with conn.cursor() as cursor: 
+			user_id = getUserIdFromEmail(flask_login.current_user.id)
+			query = "SELECT name FROM Albums WHERE userID=%s"
+			values = (user_id,)
+			cursor.execute(query, values)
+			albums = cursor.fetchall()
+		
+		if albums:
+			return render_template('upload.html', albums=albums)
+		else: 
+			return flask.render_template(
+				'hello.html', 
+			 	message="You must create an album before uploading photos"
+			)
 #end photo uploading code
-
-def get_user_id(): 
-	with conn.cursor() as cursor: 
-		query = "SELECT user_id FROM Users WHERE email=%s"
-		values = (flask_login.current_user.id)
-		cursor.execute(query, values)
-		return cursor.fetchone()[0]
 
 
 #default page
@@ -233,11 +250,11 @@ def hello():
 def show_friends(): 
 	with conn.cursor() as cursor: 
 		# get the current user's id 
-		user_id = get_user_id()
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
 		
 		# get the friend_ids 
 		query = "SELECT friend_id FROM Friends WHERE user_id=%s"
-		values = (user_id)
+		values = (user_id,)
 		cursor.execute(query, values)
 		friend_ids = cursor.fetchall()
 
@@ -288,7 +305,7 @@ def add_friend():
 		friend_id = cursor.fetchall()[0][0]
 
 		# get user_id 
-		user_id = get_user_id()
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
 
 		values = (user_id, friend_id) # the values we will use from now on 
 
@@ -313,39 +330,80 @@ def add_friend():
 def list_albums(): 
 	with conn.cursor() as cursor: 
 		# get the user_id
-		user_id = get_user_id()
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
 
 		# fetch all albums belonging to that user 
 		query = "SELECT albumID, name, dateCreated FROM Albums WHERE userID=%s"
-		values = (user_id)
+		values = (user_id,)
 		cursor.execute(query, values)
 		all_album_tups = cursor.fetchall() 
 
 		# tell the user if there are no albums
 		if not all_album_tups: 
-			return render_template("list-albums.html", no_albums=True)
+			return render_template("albums/list-albums.html", no_albums=True)
 		
 		# else convert the tuples to dictionaries 
 		all_albums =[{'name': tup[1], 'id': tup[0], 'date': tup[2] } \
 	       for tup in all_album_tups]
 
-		return render_template('list-albums.html', has_albums=True, albums=all_albums)
+		return render_template('albums/list-albums.html', has_albums=True, albums=all_albums)
 
 
 @app.route("/new-album", methods=["GET", "POST"])
 @flask_login.login_required
 def new_album(): 
 	if request.method == "GET": 
-		return render_template("new-album.html")
+		return render_template("albums/new-album.html")
 	else: 
 		# figure out the date 
-		current_date = f"{datetime.year}-{datetime.month}-{datetime.day}"
+		current_date = datetime.now().strftime('%Y-%m-%d')
 
 		# get the album name 
 		name = request.form["name"]
 
 		# check if an album exists with the same name already 
-		user_id = get_user_id()
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
+		with conn.cursor() as cursor: 
+			query = "SELECT name FROM Albums WHERE userID=%s"
+			values = (user_id,)
+			cursor.execute(query, values)
+			album = cursor.fetchone()
+			if album: 
+				if album[0] == name: 
+					return render_template("new-album.html", message="That name is already taken.")
+			# at this point we know that the name is not taken and can insert 
+			query = "INSERT INTO Albums (userID, name, dateCreated) VALUES \
+				(%s, %s, DATE(%s))"
+			values = (user_id, name, current_date)
+			cursor.execute(query, values)
+			conn.commit()
+			return flask.redirect('/list-albums')
+		
+
+@app.route('/show-album', methods=["GET"])
+@flask_login.login_required
+def show_album(): 
+	album_id = request.args.get('id')
+	name = request.args.get('name')
+	photos = getUsersPhotos(getUserIdFromEmail(flask_login.current_user.id))
+	pictures = [photo[0] for photo in photos]
+	captions = [photo[2] for photo in photos]
+	pairs = zip(pictures, captions)
+
+	# if there are no photos, the template should be rendered different 
+	if pairs: 
+		return render_template(
+			'albums/show-album.html', 
+			no_photos=True,
+			album_name=name
+		) 
+	return render_template(
+		'albums/show-album.html', 
+		album_name=name, 
+		pairs=pairs,
+		base64=base64, 
+		has_photos=True
+	)
 
 
 if __name__ == "__main__":
