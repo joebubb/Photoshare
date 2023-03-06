@@ -1,0 +1,16 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tag Search</title>
+</head>
+<body>
+    <a href="/">Home</a>
+    <a href="/browse">Back</a>
+    <h2>Self Tag Search</h2>
+    <form action="{{ url_for('search_own_tags') }}" method="post">
+        <label for="tags">Tags:</label>
+        <input type="text" name="tags"><br>
+        <input type="submit" value="Search">
+    </form>
+</body>
+</html>

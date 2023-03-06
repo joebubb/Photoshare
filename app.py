@@ -422,6 +422,76 @@ def show_album():
 	)
 
 
+@app.route("/browse", methods=["GET"])
+def browse(): 
+	if flask_login.current_user.is_authenticated: 
+		# this will determine if the user will be able to search for photos
+		# with their tags 
+		logged_in = True 
+
+	return render_template('browsing/browse.html', logged_in=logged_in)
+
+
+@app.route("/browse-all", methods=["GET"])
+def browse_all(): 
+	with conn.cursor() as cursor: 
+		query = "SELECT picture_id, imgdata, caption FROM Pictures"
+		cursor.execute(query)
+		photos = cursor.fetchall()
+
+	return render_template("browsing/browse-photos.html", base64=base64, 
+		photos=photos)
+
+
+@app.route("/tag-search", methods=["GET", "POST"])
+def tag_search():
+    if request.method == "GET":
+        return render_template("browsing/tag-search.html")
+    else:
+        tags = request.form.get('tags').strip().split()
+        with conn.cursor() as cursor:
+            # Construct the query
+            query = "SELECT p.picture_id, p.imgdata, p.caption \
+                     FROM Pictures p \
+                     JOIN Tags t ON p.picture_id = t.photo \
+                     WHERE t.tagname IN (%s" + ", %s" * (len(tags)-1) + ") \
+                     GROUP BY p.picture_id \
+                     HAVING COUNT(*) = %s"
+            params = tuple(tags) + (len(tags),)
+            cursor.execute(query, params)
+
+            photos = cursor.fetchall()
+
+        return render_template('browsing/browse-photos.html', base64=base64,
+                               photos=photos)
+
+
+@app.route("/search-own-tags", methods=["GET", "POST"])
+@flask_login.login_required
+def search_own_tags(): 
+    if request.method == "GET": 
+        return render_template("browsing/self-tag-search.html")
+    else: 
+        tags = request.form.get('tags').strip().split()
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        with conn.cursor() as cursor: 
+            query = """
+                    SELECT p.picture_id, p.imgdata, p.caption
+                    FROM Pictures p
+                    JOIN Tags t ON p.picture_id = t.photo AND t.tagname IN %s
+                    WHERE p.user_id = %s
+                    GROUP BY p.picture_id
+                    HAVING COUNT(DISTINCT t.tagname) = %s
+                    """
+
+            cursor.execute(query, (tuple(tags), user_id, len(tags)))
+
+            photos = cursor.fetchall()
+
+        return render_template('browsing/browse-photos.html', base64=base64,
+             photos=photos)
+
+
 if __name__ == "__main__":
 	#this is invoked when in the shell  you run
 	#$ python app.py

@@ -1,0 +1,17 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Browse</title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <h2>Browse</h2>
+
+        <a href="/browse-all">Browse All Photos</a><br>
+        <a href="/tag-search">Search All Tags</a><br>
+        {% if logged_in %}
+        <a href="/search-own-tags">Search Your Tags</a><br>
+        {% endif %}
+        <a href="">Search For Comments</a>
+    </body>
+</html>

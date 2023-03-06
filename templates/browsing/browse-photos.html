@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Photos</title>
+</head>
+    <body>
+        <a href="/">Home</a>
+        <a href="/browse">Back</a>
+        <h2>All Photos</h2>
+        <ul>
+        {% for photo in photos %}
+            <li>
+                <div>
+                    <img src='data:image/jpg;base64, {{ base64.b64encode(photo[1]).decode("ascii") }}'/>
+                    <p>{{ photo[2] }}</p>
+                </div>
+            </li>
+        {% endfor %}
+        </ul>
+    </body>
+</html>
