@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trending Tags</title>
+</head>
+<body>
+    <a href="/">Home</a><br>
+    <a href="/trending">Back</a>
+    <h2>Top 3 Tags</h2>
+    <ol>
+        {% for tag in tags %}
+            <li>
+                <p>{{ tag[0] }}: {{ tag[1] }} photo(s)</p>
+            </li>
+        {% endfor %}
+    </ol>
+</body>
+</html>

@@ -490,6 +490,26 @@ def search_own_tags():
 
         return render_template('browsing/browse-photos.html', base64=base64,
              photos=photos)
+    
+
+@app.route("/trending", methods=["GET"])
+def trending(): 
+	return render_template("trending/trending.html")
+
+
+@app.route("/trending-tags", methods=["GET"])
+def trending_tags(): 
+	with conn.cursor() as cursor: 
+		query = """
+				SELECT tagname, COUNT(*) as tag_count
+				FROM Tags
+				GROUP BY tagname
+				ORDER BY tag_count DESC
+				LIMIT 3;
+				"""
+		cursor.execute(query)
+		tags = cursor.fetchall() 
+		return render_template("trending/trending-tags.html", tags=tags)
 
 
 if __name__ == "__main__":
