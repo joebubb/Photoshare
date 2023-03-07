@@ -1,0 +1,17 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>See Comments</title>
+</head>
+<body>
+    <a href="/">Home</a>
+    <h2>See Comments</h2>
+    <ul>
+        {% for row in rows %}
+            <li>
+                <p>{{ row[1] }}: {{row[0]}}</p>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Comment Search</title>
+</head>
+<body>
+    <a href="/">Home</a>
+    <h2>Comment Search</h2>
+    <form action="comment_search" method="post">
+        <label for="comment">Comment</label>
+        <input type="text" name="comment">
+        <input type="submit" value="Search">
+    </form>
+    <ol>
+        {% for user in users %}
+            <li>
+                <p>{{ user[0] }} {{ user[1] }}</p>
+            </li>
+        {% endfor %}
+    </ol>
+</body>
+</html>

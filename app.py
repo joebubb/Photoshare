@@ -301,7 +301,7 @@ def find_friend():
 		# see if people with that name exist 
 		with conn.cursor() as cursor: 
 			query = f"SELECT first_name, last_name, email FROM Users WHERE \
-		first_name=%s AND last_name=%s"
+					first_name=%s AND last_name=%s"
 			values = (fname, lname)
 			cursor.execute(query, values)
 			conn.commit()
@@ -510,6 +510,139 @@ def trending_tags():
 		cursor.execute(query)
 		tags = cursor.fetchall() 
 		return render_template("trending/trending-tags.html", tags=tags)
+	
+
+@app.route("/like_photo", methods=["POST"])
+def like_photo(): 
+	if not flask_login.current_user.is_authenticated: 
+		return flask.render_template("hello.html", 
+			    message="You must be logged in to like a photo")
+	photo_id = request.form.get("id")
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	with conn.cursor() as cursor: 
+		# Check if the user has already liked the photo
+		query = "SELECT * FROM Likes WHERE user_id = %s AND photo_id = %s"
+		values = (user_id, photo_id)
+		cursor.execute(query, values)
+		if cursor.fetchone(): # If the user has already liked the photo, do nothing
+			return render_template("hello.html", message="You have already liked this photo")
+		else: # If the user has not yet liked the photo, insert the like into the Likes table
+			query = "INSERT INTO Likes (user_id, photo_id) VALUES (%s, %s)"
+			values = (user_id, photo_id)
+			cursor.execute(query, values)
+	conn.commit() 
+	return render_template("hello.html", message="Photo liked")
+
+
+@app.route("/leave_comment", methods=["POST"])
+def leave_comment(): 
+	photo_id = request.form.get("id")
+	comment = request.form.get("comment")
+	with conn.cursor() as cursor: 
+		if flask_login.current_user.is_authenticated: 
+			user_id = getUserIdFromEmail(flask_login.current_user.id)
+			query = "INSERT INTO Comments (photo_id, comment, user_id) VALUES (%s, %s, %s)"
+			values = (photo_id, comment, user_id)
+			cursor.execute(query, values)
+		else: 
+			query = "INSERT INTO Comments (photo_id, comment, user_id) VALUES (%s, %s, NULL)"
+			values = (photo_id, comment)
+			cursor.execute(query, values)
+		conn.commit()
+		return render_template("hello.html",message="Your comment has been left")
+	
+
+@app.route("/see_likes", methods=["POST"])
+def see_likes(): 
+	photo_id = request.form.get("id")
+	with conn.cursor() as cursor: 
+		query = """
+				SELECT COUNT(*) as num_likes
+				FROM Likes
+				WHERE photo_id = %s
+				"""
+		cursor.execute(query, (photo_id,))
+		num_likes = cursor.fetchone()[0]
+
+		query = """
+				SELECT u.first_name, u.last_name
+				FROM Users u
+				JOIN Likes l ON u.user_id = l.user_id
+				WHERE l.photo_id = %s
+				"""
+		cursor.execute(query, (photo_id,))
+		names = cursor.fetchall()
+		return render_template("see-likes.html", names=names, likes=num_likes)
+
+
+@app.route("/see_comments", methods=["POST"])
+def see_comments(): 
+	photo_id = request.form.get("id")
+	with conn.cursor() as cursor: 
+		query = """
+				SELECT c.comment, u.email
+				FROM Comments c
+				JOIN Users u ON c.user_id = u.user_id
+				WHERE c.photo_id = %s
+				"""
+		cursor.execute(query, (photo_id,))
+		rows = cursor.fetchall() 
+		return render_template("see-comments.html", rows=rows)
+	
+
+@app.route("/active-users", methods=["GET"])
+def active_users(): 
+	with conn.cursor() as cursor: 
+		query = """
+				SELECT u.email, COALESCE(upload_count, 0) + COALESCE(comment_count, 0) as contribution_score
+				FROM Users u
+				LEFT JOIN (
+					SELECT user_id, COUNT(*) as upload_count
+					FROM Pictures
+					GROUP BY user_id
+				) p ON u.user_id = p.user_id
+				LEFT JOIN (
+					SELECT user_id, COUNT(*) as comment_count
+					FROM Comments
+					WHERE user_id IS NOT NULL
+					GROUP BY user_id
+				) c ON u.user_id = c.user_id
+				ORDER BY contribution_score DESC
+				LIMIT 10;
+				"""
+		cursor.execute(query)
+		users = cursor.fetchall()
+		return render_template("trending/active-users.html", users=users)
+	
+
+@app.route("/comment_search", methods=["GET", "POST"])
+def comment_search(): 
+	if request.method == "GET": 
+		return render_template("comment-search.html")
+	else: 
+		comment = request.form.get("comment")
+		with conn.cursor() as cursor: 
+			query = """
+					SELECT u.first_name, u.last_name, COUNT(*) AS num_matches
+					FROM Users u
+					JOIN Comments c ON u.user_id = c.user_id
+					WHERE c.comment=%s
+					GROUP BY u.user_id
+					ORDER BY num_matches DESC;
+					"""
+			values = (comment,)
+			cursor.execute(query, values)
+			users = cursor.fetchall() 
+			return render_template("comment-search.html", users=users)
+		
+
+@app.route('/recommended_friends', methods=['GET'])
+@flask_login.login_required
+def friend_of_friends():
+	id = getUserIdFromEmail(flask_login.current_user.id)
+	with conn.cursor() as cursor: 
+		cursor.execute("SELECT u.first_name, u.last_name, u.email FROM Users u, Friends f1, Friends f2 where u.user_id = f1.friend_id AND f1.user_id = f2.friend_id AND f2.user_id = {0} AND u.user_id NOT IN (SELECT f.friend_id FROM Friends f WHERE f.user_id = {0})".format(id))
+		return render_template('find-friends.html', users = cursor.fetchall())
 
 
 if __name__ == "__main__":

@@ -13,6 +13,24 @@
                 <div>
                     <img src='data:image/jpg;base64, {{ base64.b64encode(photo[1]).decode("ascii") }}'/>
                     <p>{{ photo[2] }}</p>
+                    <form action="like_photo" method="post">
+                        <input type="hidden" name="id" value="{{ photo[0] }}">
+                        <input type="submit" value="Like">
+                    </form>
+                    <form action="leave_comment" method="post">
+                        <label for="comment">Comment:</label>
+                        <input type="text" name="comment">
+                        <input type="hidden" name="id" value="{{ photo[0] }}">
+                        <input type="submit" value="Leave Comment">
+                    </form>
+                    <form action="see_likes" method="post">
+                        <input type="hidden" name="id" value="{{ photo[0] }}">
+                        <input type="submit" value="See Likes">
+                    </form>
+                    <form action="see_comments" method="post">
+                        <input type="hidden" name="id" value="{{ photo[0] }}">
+                        <input type="submit" value="See Comments">
+                    </form>
                 </div>
             </li>
         {% endfor %}

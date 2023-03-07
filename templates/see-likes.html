@@ -1,0 +1,19 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>See Likes</title>
+</head>
+<body>
+    <a href="/">Home</a>
+    <h2>See Likes</h2>
+    <p>This photo has {{ likes }} like(s)</p>
+    <h3>Users:</h3>
+    <ul>
+        {% for name in names %}
+            <li>
+                <p>{{ name[0] }} {{ name[1] }}</p>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

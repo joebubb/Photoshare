@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Active Users</title>
+</head>
+<body>
+    <a href="/">Home</a>
+    <a href="/trending">Back</a>
+    <h2>Top 10 Most Active Users</h2>
+    <ol>
+        {% for user in users %}
+            <li>
+                <p>{{ user[0] }}</p>
+            </li>
+        {% endfor %}
+    </ol>
+</body>
+</html>
